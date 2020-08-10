@@ -84,6 +84,50 @@ signed_key = ent.app_search.create_signed_search_key(
 )
 ```
 
+### Workplace Search OAuth Authorization
+
+Workplace Search supports being used as an [OAuth Service](https://www.elastic.co/guide/en/workplace-search/current/workplace-search-search-oauth.html)
+
+```python
+from flask import Flask, request, url_for, redirect
+from elastic_enterprise_search import WorkplaceSearch
+
+app = Flask(__name__)
+workplace_search = WorkplaceSearch(
+    "https://...85fc1b.ent-search.us-central1.gcp.cloud.es.io"
+)
+oauth_client_id = "..."
+oauth_client_secret = "..."
+
+
+@app.route("/login", methods=["GET"])
+def login():
+    # Check the database to see if we have an access_token already...
+
+    # Create a URL for the user to access via browser
+    client_redirect_url = workplace_search.oauth_authorize(
+        response_type="code",
+        client_id=oauth_client_id,
+        redirect_uri=url_for("oauth_redirect_uri", external=True)
+    )
+    # Return a 3XX response for the user to follow
+    return redirect(client_redirect_url)
+
+
+@app.route("/oauth_redirect_uri", methods=["GET"])
+def oauth_redirect_uri():
+    code = request.args.get("code")
+    resp = workplace_search.oauth_exchange_access_token(
+        client_id=oauth_client_id,
+        client_secret=oauth_client_secret,
+        redirect_uri=url_for("oauth_redirect_uri", external=True),
+        code=code
+    )
+
+    # Store the 'access_token' and 'refresh_token' in the database
+    return redirect("...")
+```
+
 ## License
 
 Apache-2.0
